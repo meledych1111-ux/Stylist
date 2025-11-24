@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Color Wheel — Hair & Stylist (Module)</title>
+<style>
+  /* ======= Базовые переменные и общий стиль ======= */
+  :root{
+    --bg:#0f1720;
+    --muted:#9aa4b2;
+    --text:#f3f6f9;
+    --accent1:#ff6eC7;
+    --accent2:#4facfe;
+    --accent3:#f9d423;
+    --accent4:#c471ed;
+    --bg1: rgba(255,255,255,0.02);
+  }
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#071021 0%, #0f1720 100%);color:var(--text);font-family:Inter, "Segoe UI", Roboto, Arial; -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1100px;margin:24px auto;padding:20px;}
+  h1{margin:0 0 18px 0;font-size:20px}
+  section.tab-page{background:transparent;padding:12px;border-radius:12px;margin-bottom:18px}
+
+  /* ========== Canvas blocks ========== */
+  .canvas-row{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
+  .canvas-block{background:var(--bg1);padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
+  canvas{display:block;border-radius:50%;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));box-shadow:0 6px 18px rgba(0,0,0,0.6)}
+
+  /* ====== Scheme meta styles (твой присланный CSS + улучшения) ====== */
+  .scheme-description { border-left:4px solid var(--accent2); padding-left:10px; margin-bottom:10px;}
+  .scheme-makeup { border-left-color: var(--accent3); background: rgba(249, 212, 35, 0.05); padding:10px; border-radius:8px; }
+  .scheme-clothing { border-left-color: var(--accent1); background: rgba(255, 110, 199, 0.04); padding:10px; border-radius:8px; }
+  .scheme-accessories { border-left-color: var(--accent4); background: rgba(196, 113, 237, 0.04); padding:10px; border-radius:8px; }
+  .scheme-occasion { border-left-color: var(--accent2); background: rgba(79, 172, 254, 0.04); padding:10px; border-radius:8px; }
+  .scheme-hair { border-left-color: var(--accent3); background: rgba(249, 212, 35, 0.05); padding:10px; border-radius:8px; }
+  .scheme-interior { border-left-color: var(--accent4); background: rgba(196, 113, 237, 0.04); padding:10px; border-radius:8px; }
+  .scheme-palette { background: var(--bg1); border-left:4px solid var(--accent1); padding:14px; border-radius:10px; margin-top:12px; }
+
+  .scheme-meta-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
+  .meta-item { background: rgba(255,255,255,0.02); padding:10px; border-radius:6px; text-align:center; }
+  .meta-label{ color:var(--muted); display:block; font-size:12px; margin-bottom:4px; }
+  .meta-value{ color:var(--text); font-weight:600; font-size:13px; }
+
+  .scheme-hint{ background: rgba(23,162,184,0.06); padding:10px; border-radius:6px; border-left:4px solid var(--accent2); margin-top:12px; color:var(--text)}
+  .hint-label{ color:var(--accent2); display:block; margin-bottom:4px; font-weight:700; font-size:13px}
+  .hint-content{ color:var(--text); font-size:13px; font-style:italic}
+
+  /* ========== Active filters panel & filter controls ========== */
+  .filters-section{background:rgba(255,255,255,0.02); border-radius:12px; padding:16px; margin:12px 0; border:1px solid rgba(255,255,255,0.03)}
+  .filters-controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  select.text-input{padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:var(--text)}
+  .active-filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+  .active-filter-item{display:inline-flex;align-items:center;background:linear-gradient(135deg,var(--accent1),var(--accent2));color:#fff;padding:6px 10px;border-radius:20px;font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,0.5)}
+  .active-filter-remove{background:none;border:none;color:inherit;margin-left:8px;cursor:pointer;font-weight:700}
+  .clear-all-filters{background:rgba(255,255,255,0.04);color:var(--text);border:1px solid rgba(255,255,255,0.04);padding:6px 10px;border-radius:8px;cursor:pointer}
+  .no-filters{color:var(--muted);font-style:italic}
+
+  /* ========== Stylish swatches for palette output ========= */
+  .palette-row{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;align-items:flex-start}
+  .color-swatch{
+      width:92px;height:92px;border-radius:14px;box-shadow:0 8px 20px rgba(2,6,23,0.6);
+      cursor:pointer;transition:transform .22s ease, box-shadow .22s ease, outline .12s;
+      position:relative;overflow:hidden;border:2px solid rgba(255,255,255,0.03);
+      display:flex;align-items:flex-end;justify-content:center;padding:8px;
+  }
+  .color-swatch:hover{transform:translateY(-6px);box-shadow:0 14px 32px rgba(2,6,23,0.7)}
+  .color-swatch .label{background:rgba(0,0,0,0.28);padding:4px 8px;border-radius:8px;color:#fff;font-weight:600;font-size:12px}
+  .color-swatch.chosen{outline:3px solid rgba(255,255,255,0.12);transform:translateY(-6px);box-shadow:0 18px 40px rgba(0,0,0,0.75)}
+  .color-swatch[data-hex]::after{content:attr(data-hex);position:absolute;left:8px;top:8px;font-size:11px;color:rgba(255,255,255,0.85);background:rgba(0,0,0,0.18);padding:4px 6px;border-radius:6px}
+
+  /* ========== Buttons for scheme selection ========== */
+  .scheme-controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .btn{padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:var(--text);cursor:pointer}
+  .btn.func{background:linear-gradient(135deg,var(--accent2),var(--accent4));color:#fff;border:none;box-shadow:0 8px 22px rgba(0,0,0,0.6)}
+  .btn.func:active{transform:translateY(1px)}
+
+  /* ========== Misc ========== */
+  .row{display:flex;gap:12px;align-items:center}
+  .col{display:flex;flex-direction:column;gap:8px}
+  .small{font-size:13px;color:var(--muted)}
+  .scheme-guide{margin-top:10px;padding:10px;border-radius:8px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);min-height:40px}
+
+  /* responsive */
+  @media (max-width:900px){.canvas-row{flex-direction:column;align-items:center}.color-swatch{width:74px;height:74px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Color Module — Парикмахерский и Стилист</h1>
+
+  <!-- CANVASES -->
+  <div class="canvas-row">
+    <div class="canvas-block">
+      <h3 class="small">Парикмахерский цветовой круг</h3>
+      <canvas id="hairColorWheel" width="300" height="300"></canvas>
+      <div id="hairColorResult" class="small">—</div>
+    </div>
+
+    <div class="canvas-block" style="min-width:460px">
+      <h3 class="small">Цветовой круг для стилистов</h3>
+      <canvas id="stylistColorWheel" width="450" height="450"></canvas>
+      <div id="stylistColorResult" class="small">—</div>
+    </div>
+  </div>
+
+  <!-- ФИЛЬТРЫ -->
+  <section class="filters-section">
+    <div class="filters-controls">
+      <div class="row">
+        <label class="small" style="margin-right:8px">Фильтр по стилю:</label>
+        <select id="filterStyle" class="text-input">
+          <option value="">— Все стили —</option>
+          <option value="деловой">Деловой</option>
+          <option value="повседневный">Повседневный</option>
+          <option value="вечерний">Вечерний</option>
+          <option value="универсальный">Универсальный</option>
+          <option value="контрастный">Контрастный</option>
+          <option value="свежий">Свежий</option>
+          <option value="яркий">Яркий</option>
+          <option value="романтический">Романтический</option>
+          <option value="креативный">Креативный</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <label class="small" style="margin-right:8px">Фильтр по цветотипу:</label>
+        <select id="filterColortype" class="text-input">
+          <option value="">— Все цветотипы —</option>
+          <option value="весна">Весна</option>
+          <option value="лето">Лето</option>
+          <option value="осень">Осень</option>
+          <option value="зима">Зима</option>
+          <option value="универсальный">Универсальный</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <label class="small" style="margin-right:8px">Фильтр по сезону:</label>
+        <select id="filterSeason" class="text-input">
+          <option value="">— Все сезоны —</option>
+          <option value="весна">Весна</option>
+          <option value="лето">Лето</option>
+          <option value="осень">Осень</option>
+          <option value="зима">Зима</option>
+          <option value="все">Универсальный</option>
+        </select>
+      </div>
+
+      <button id="clearFilters" class="clear-all-filters">Сбросить фильтры</button>
+    </div>
+
+    <div class="active-filters" id="activeFilters">
+      <span class="no-filters" id="noFiltersLabel">Фильтры не активны</span>
+    </div>
+  </section>
+
+  <!-- СХЕМЫ -->
+  <div class="scheme-controls">
+    <button class="btn func" data-scheme="analog">Аналоговая</button>
+    <button class="btn func" data-scheme="complement">Комплементарная</button>
+    <button class="btn func" data-scheme="triad">Триада</button>
+    <button class="btn func" data-scheme="splitComplement">Split Complement</button>
+    <button class="btn func" data-scheme="tetradic">Тетрада</button>
+    <button class="btn func" data-scheme="monochrome">Монохроматическая</button>
+    <button class="btn func" data-scheme="accentComplement">Акцентная комплементарная</button>
+    <button class="btn func" data-scheme="dyad">Диада</button>
+    <button class="btn func" data-scheme="neutral">Нейтральная</button>
+    <button class="btn func" data-scheme="tonal">Тональная</button>
+    <button class="btn func" data-scheme="splitTriad">Мягкая триада</button>
+    <button class="btn func" data-scheme="pentadic">Пентада</button>
+    <button class="btn func" data-scheme="accentTriad">Акцентная триада</button>
+    <button class="btn func" data-scheme="contrastAnalogous">Контрастная аналогия</button>
+    <button class="btn func" data-scheme="tintedComplement">Tinted Complement</button>
+    <button class="btn func" data-scheme="alsoGood">Подходящие</button>
+    <button class="btn func" data-scheme="notGood">Неподходящие</button>
+  </div>
+
+  <!-- ПАЛИТРА -->
+  <div class="scheme-palette" id="schemePalette">
+    <div class="scheme-meta-grid">
+      <div class="meta-item">
+        <span class="meta-label">Схема</span>
+        <span class="meta-value" id="schemeName">—</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Базовый цвет</span>
+        <span class="meta-value" id="baseColorInfo">—</span>
+      </div>
+    </div>
+
+    <div id="swatches" class="palette-row"></div>
+
+    <div class="scheme-guide" id="schemeGuide">Выбери цвет на круге, затем нажми схему.</div>
+  </div>
+
+</div>
+
+<script>
+/* =========================
+   ДАННЫЕ: colors (сокращённый, но расширяемый)
+   Я использую набор исходных цветов — при желании заменишь на полный массив.
+   ========================= */
+const colors = [
+  { color:"#ffb07c", text:"Персиковый", tone:"тёплый", style:"романтический", season:"весна", colortype:"весна",
+    textureHint:"Шифон, лёгкий хлопок", makeupSet:{ lips:"Персиковая", eyes:"Золотистые", blush:"Персиковые", eyeliner:"Коричневая", style:"Романтический" }},
+  { color:"#ffa07a", text:"Коралловый", tone:"тёплый", style:"повседневный", season:"весна", colortype:"весна",
+    textureHint:"Хлопок, лен", makeupSet:{ lips:"Коралловая", eyes:"Бежевые", blush:"Абрикосовые", eyeliner:"Коричневая", style:"Повседневный" }},
+  { color:"#40e0d0", text:"Бирюзовый", tone:"холодный", style:"креативный", season:"весна", colortype:"весна",
+    textureHint:"Шёлк", makeupHint:"Тени бирюзовые", makeupSet:{ lips:"Нюдовая", eyes:"Бирюзовые", blush:"Светлые", eyeliner:"Чёрная", style:"Креативный" }},
+  { color:"#ffff99", text:"Лимонный", tone:"тёплый", style:"яркий", season:"весна", colortype:"весна",
+    textureHint:"Хлопок", makeupHint:"Хайлайтер", makeupSet:{ lips:"Нюдовая", eyes:"Жёлтые", blush:"Светлые", eyeliner:"Коричневая", style:"Яркий" }},
+  { color:"#98fb98", text:"Светло-зелёный", tone:"тёплый", style:"повседневный", season:"весна", colortype:"весна",
+    textureHint:"Лён", makeupHint:"Тени зелёные", makeupSet:{ lips:"Нюдовая", eyes:"Зелёные", blush:"Персиковые", eyeliner:"Коричневая", style:"Повседневный" }},
+  { color:"#ff69b4", text:"Ярко-розовый", tone:"тёплый", style:"креативный", season:"весна", colortype:"весна",
+    textureHint:"Шифон", makeupHint:"Помада розовая", makeupSet:{ lips:"Ярко-розовая", eyes:"Серебристые", blush:"Розовые", eyeliner:"Чёрная", style:"Креативный" }},
+  { color:"#ffe4b5", text:"Абрикосовый", tone:"тёплый", style:"романтический", season:"весна", colortype:"весна",
+    textureHint:"Шёлк", makeupHint:"Румяна абрикосовые", makeupSet:{ lips:"Абрикосовая", eyes:"Бежевые", blush:"Абрикосовые", eyeliner:"Коричневая", style:"Романтический" }},
+  { color:"#f0e68c", text:"Хаки светлый", tone:"тёплый", style:"универсальный", season:"весна", colortype:"весна",
+    textureHint:"Хлопок", makeupHint:"Тени хаки", makeupSet:{ lips:"Нюдовая", eyes:"Хаки", blush:"Персиковые", eyeliner:"Коричневая", style:"Универсальный" }},
+  { color:"#ffdab9", text:"Персиковый светлый", tone:"тёплый", style:"повседневный", season:"весна", colortype:"весна",
+    textureHint:"Лён", makeupHint:"Румяна персиковые", makeupSet:{ lips:"Персиковая", eyes:"Бежевые", blush:"Персиковые", eyeliner:"Коричневая", style:"Повседневный" }},
+
+  { color:"#e6e6fa", text:"Лавандовый", tone:"холодный", style:"романтический", season:"лето", colortype:"лето",
+    textureHint:"Шифон", makeupHint:"Тени лавандовые", makeupSet:{ lips:"Розовая", eyes:"Лавандовые", blush:"Розовые", eyeliner:"Серая", style:"Романтический" }},
+  { color:"#add8e6", text:"Небесно-голубой", tone:"холодный", style:"повседневный", season:"лето", colortype:"лето",
+    textureHint:"Хлопок", makeupHint:"Тени голубые", makeupSet:{ lips:"Нюдовая", eyes:"Голубые", blush:"Светлые", eyeliner:"Чёрная", style:"Повседневный" }},
+  { color:"#dda0dd", text:"Сиреневый", tone:"холодный", style:"креативный", season:"лето", colortype:"лето",
+    textureHint:"Шёлк", makeupHint:"Тени сиреневые", makeupSet:{ lips:"Фуксия", eyes:"Сиреневые", blush:"Холодные", eyeliner:"Чёрная", style:"Креативный" }},
+  { color:"#98ff98", text:"Мятный", tone:"холодный", style:"свежий", season:"лето", colortype:"лето",
+    textureHint:"Хлопок", makeupHint:"Тени мятные", makeupSet:{ lips:"Нюдовая", eyes:"Мятные", blush:"Светлые", eyeliner:"Серая", style:"Свежий" }},
+  { color:"#87cefa", text:"Голубой яркий", tone:"холодный", style:"повседневный", season:"лето", colortype:"лето",
+    textureHint:"Шёлк", makeupHint:"Тени голубые", makeupSet:{ lips:"Нюдовая", eyes:"Голубые", blush:"Розовые", eyeliner:"Чёрная", style:"Повседневный" }},
+  { color:"#c0c0c0", text:"Серебристый", tone:"холодный", style:"вечерний", season:"лето", colortype:"лето",
+    textureHint:"Атлас", makeupHint:"Хайлайтер", makeupSet:{ lips:"Нюдовая", eyes:"Серебристые", blush:"Светлые", eyeliner:"Чёрная", style:"Вечерний" }},
+  { color:"#ffc0cb", text:"Розовый", tone:"тёплый", style:"романтический", season:"лето", colortype:"лето",
+    textureHint:"Шифон", makeupHint:"Помада, румяна", makeupSet:{ lips:"Розовая", eyes:"Светло-голубые", blush:"Розовые", eyeliner:"Тонкая чёрная", style:"Романтический" }},
+  { color:"#ffe4e1", text:"Светло-розовый", tone:"тёплый", style:"повседневный", season:"лето", colortype:"лето",
+    textureHint:"Пастельные ткани", makeupHint:"Румяна, хайлайтер", makeupSet:{ lips:"Светло-розовая", eyes:"Серебристые", blush:"Светлые", eyeliner:"Серая", style:"Повседневный" }},
+  { color:"#f5f5dc", text:"Бежевый", tone:"нейтральный", style:"универсальный", season:"лето", colortype:"лето",
+    textureHint:"Хлопок", makeupHint:"Тени бежевые", makeupSet:{ lips:"Нюдовая", eyes:"Бежевые", blush:"Светлые", eyeliner:"Коричневая", style:"Универсальный" }},
+
+  { color:"#cd5c5c", text:"Терракотовый", tone:"тёплый", style:"повседневный", season:"осень", colortype:"осень",
+    textureHint:"Шерсть", makeupHint:"Помада терракотовая", makeupSet:{ lips:"Терракотовая", eyes:"Коричневые", blush:"Бронзовые", eyeliner:"Коричневая", style:"Повседневный" }},
+  { color:"#800000", text:"Бордовый", tone:"тёплый", style:"деловой", season:"осень", colortype:"осень",
+    textureHint:"Твид", makeupHint:"Помада бордовая", makeupSet:{ lips:"Бордовая", eyes:"Золотистые", blush:"Тёплые", eyeliner:"Чёрная", style:"Деловой" }},
+  { color:"#808000", text:"Оливковый", tone:"тёплый", style:"универсальный", season:"осень", colortype:"осень",
+    textureHint:"Лён", makeupHint:"Тени оливковые", makeupSet:{ lips:"Нюдовая", eyes:"Оливковые", blush:"Персиковые", eyeliner:"Коричневая", style:"Универсальный" }},
+  { color:"#a0522d", text:"Шоколадный", tone:"тёплый", style:"вечерний", season:"осень", colortype:"осень",
+    textureHint:"Бархат", makeupHint:"Помада шоколадная", makeupSet:{ lips:"Шоколадная", eyes:"Коричневые", blush:"Тёплые", eyeliner:"Чёрная", style:"Вечерний" }},
+  { color:"#b8860b", text:"Золотисто-коричневый", tone:"тёплый", style:"деловой", season:"осень", colortype:"осень",
+    textureHint:"Шерсть", makeupHint:"Тени золотистые", makeupSet:{ lips:"Бордовая", eyes:"Золотистые", blush:"Бронзовые", eyeliner:"Чёрная", style:"Деловой" }},
+  { color:"#d2691e", text:"Медный", tone:"тёплый", style:"креативный", season:"осень", colortype:"осень",
+    textureHint:"Твид", makeupHint:"Тени медные", makeupSet:{ lips:"Нюдовая", eyes:"Медные", blush:"Тёплые", eyeliner:"Коричневая", style:"Креативный" }},
+  { color:"#cc7722", text:"Охра", tone:"тёплый", style:"повседневный", season:"осень", colortype:"осень",
+    textureHint:"Шерсть", makeupHint:"Румяна охра", makeupSet:{ lips:"Нюдовая", eyes:"Коричневые", blush:"Охра", eyeliner:"Коричневая", style:"Повседневный" }},
+  { color:"#8b4513", text:"Каштановый", tone:"тёплый", style:"универсальный", season:"осень", colortype:"осень",
+    textureHint:"Кожа", makeupHint:"Помада каштановая", makeupSet:{ lips:"Каштановая", eyes:"Коричневые", blush:"Тёплые", eyeliner:"Чёрная", style:"Универсальный" }},
+
+  { color:"#00008b", text:"Тёмно-синий", tone:"холодный", style:"деловой", season:"зима", colortype:"зима",
+    textureHint:"Атлас, шерсть", makeupHint:"Тени тёмно-синие", makeupSet:{ lips:"Красная", eyes:"Тёмно-синие", blush:"Холодные", eyeliner:"Чёрная", style:"Деловой" }},
+  { color:"#ff00ff", text:"Фуксия", tone:"холодный", style:"креативный", season:"зима", colortype:"зима",
+    textureHint:"Бархат, шёлк", makeupHint:"Помада фуксия", makeupSet:{ lips:"Фуксия", eyes:"Серебристые", blush:"Розовые", eyeliner:"Чёрная", style:"Креативный" }},
+  { color:"#4b0082", text:"Фиолетовый", tone:"холодный", style:"романтический", season:"зима", colortype:"зима",
+    textureHint:"Шёлк", makeupHint:"Тени фиолетовые", makeupSet:{ lips:"Нюдовая", eyes:"Фиолетовые", blush:"Холодные", eyeliner:"Чёрная", style:"Романтический" }},
+  { color:"#00ced1", text:"Изумрудный", tone:"холодный", style:"деловой", season:"зима", colortype:"зима",
+    textureHint:"Атлас", makeupHint:"Тени изумрудные", makeupSet:{ lips:"Красная", eyes:"Изумрудные", blush:"Холодные", eyeliner:"Чёрная", style:"Деловой" }},
+  { color:"#191970", text:"Сапфировый", tone:"холодный", style:"вечерний", season:"зима", colortype:"зима",
+    textureHint:"Атлас", makeupHint:"Тени сапфировые", makeupSet:{ lips:"Красная", eyes:"Сапфировые", blush:"Холодные", eyeliner:"Чёрная", style:"Вечерний" }},
+  { color:"#e0ffff", text:"Ледяной голубой", tone:"холодный", style:"свежий", season:"зима", colortype:"зима",
+    textureHint:"Атлас", makeupHint:"Тени голубые", makeupSet:{ lips:"Нюдовая", eyes:"Голубые", blush:"Светлые", eyeliner:"Серая", style:"Свежий" }},
+  { color:"#c0c0c0", text:"Серебристый", tone:"холодный", style:"вечерний", season:"зима", colortype:"зима",
+    textureHint:"Металлизированные ткани", makeupHint:"Хайлайтер", makeupSet:{ lips:"Нюдовая", eyes:"Серебристые", blush:"Светлые", eyeliner:"Чёрная", style:"Вечерний" }},
+  { color:"#8b0000", text:"Красный бархат", tone:"тёплый", style:"деловой", season:"зима", colortype:"зима",
+    textureHint:"Бархат", makeupHint:"Помада красная", makeupSet:{ lips:"Красная бархатная", eyes:"Тёмно-синие", blush:"Охра", eyeliner:"Чёрная", style:"Деловой вечер" }},
+  { color:"#2f4f4f", text:"Тёмно-серый", tone:"нейтральный", style:"универсальный", season:"зима", colortype:"зима",
+    textureHint:"Шерсть", makeupHint:"Тени серые", makeupSet:{ lips:"Нюдовая", eyes:"Серые", blush:"Нейтральные", eyeliner:"Чёрная", style:"Универсальный" }},
+  // ... при желании расширишь массив
+];
+
+/* =========================
+   Вспомогательные функции
+   ========================= */
+function shadeColor(color, percent){
+  let f = parseInt(color.slice(1),16),
+      t = percent < 0 ? 0 : 255,
+      p = Math.abs(percent),
+      R = f>>16,
+      G = f>>8 & 0x00FF,
+      B = f & 0x0000FF;
+  return "#" + (0x1000000 +
+    (Math.round((t-R)*p/100)+R)*0x10000 +
+    (Math.round((t-G)*p/100)+G)*0x100 +
+    (Math.round((t-B)*p/100)+B)).toString(16).slice(1);
+}
+
+/* =========================
+   Схемы (schemeGenerators) — полный набор
+   ========================= */
+const schemeGenerators = {
+  analog: (i, arr) => [ arr[(i-1+arr.length)%arr.length], arr[i], arr[(i+1)%arr.length] ],
+  complement: (i, arr) => [ arr[i], arr[(i+Math.floor(arr.length/2))%arr.length] ],
+  triad: (i, arr) => [ arr[i], arr[(i+Math.floor(arr.length/3))%arr.length], arr[(i+2*Math.floor(arr.length/3))%arr.length] ],
+  splitComplement: (i, arr) => [ arr[i], arr[(i+Math.floor(arr.length/2)-1+arr.length)%arr.length], arr[(i+Math.floor(arr.length/2)+1)%arr.length] ],
+  tetradic: (i, arr) => [ arr[i], arr[(i+Math.floor(arr.length/2))%arr.length], arr[(i+Math.floor(arr.length/4))%arr.length], arr[(i+3*Math.floor(arr.length/4))%arr.length] ],
+  monochrome: (i, arr) => [ arr[i], {...arr[i], color:shadeColor(arr[i].color, -20)}, {...arr[i], color:shadeColor(arr[i].color, 20)} ],
+  accentComplement: (i, arr) => [ arr[i], arr[(i-1+arr.length)%arr.length], arr[(i+1)%arr.length], arr[(i+Math.floor(arr.length/2))%arr.length] ],
+  dyad: (i, arr) => [ arr[i], arr[(i+Math.floor(arr.length/2)-2+arr.length)%arr.length], arr[(i+Math.floor(arr.length/2)+2)%arr.length] ],
+  neutral: (i, arr) => [ arr[i], {...arr[i], color:"#ccc", text:"Серый"}, {...arr[i], color:"#f5f5dc", text:"Бежевый"} ],
+  tonal: (i, arr) => [ arr[i], {...arr[i], color:shadeColor(arr[i].color,-20)}, {...arr[i], color:shadeColor(arr[i].color,20)} ],
+  splitTriad: (i, arr) => [ arr[i], arr[(i+Math.floor(arr.length/2)-1+arr.length)%arr.length], arr[(i+Math.floor(arr.length/2)+1)%arr.length] ],
+  pentadic: (i, arr) => { const out=[]; for(let k=0;k<5;k++) out.push(arr[(i + k*Math.floor(arr.length/5))%arr.length]); return out },
+  accentTriad: (i, arr) => [ arr[i], arr[(i+1)%arr.length], arr[(i+Math.floor(arr.length/2))%arr.length] ],
+  contrastAnalogous: (i, arr) => [ arr[i], arr[(i-1+arr.length)%arr.length], arr[(i+Math.floor(arr.length/2))%arr.length] ],
+  tintedComplement: (i, arr) => [ arr[i], {...arr[(i+Math.floor(arr.length/2))%arr.length], color: shadeColor(arr[(i+Math.floor(arr.length/2))%arr.length].color, 30)}, {...arr[(i+Math.floor(arr.length/2))%arr.length], color: shadeColor(arr[(i+Math.floor(arr.length/2))%arr.length].color, -30)} ],
+  alsoGood: (i, arr) => [ arr[(i-2+arr.length)%arr.length], arr[(i-1+arr.length)%arr.length], arr[(i+1)%arr.length], arr[(i+2)%arr.length] ],
+  notGood: (i, arr) => {
+    const half = Math.floor(arr.length/2);
+    let candidates = [
+      arr[(i+half-3+arr.length)%arr.length], arr[(i+half-2+arr.length)%arr.length], arr[(i+half-1+arr.length)%arr.length],
+      arr[(i+half)%arr.length], arr[(i+half+1)%arr.length], arr[(i+half+2)%arr.length], arr[(i+half+3)%arr.length]
+    ];
+    const exclude = [
+      (i-2+arr.length)%arr.length, (i-1+arr.length)%arr.length, (i+1)%arr.length, (i+2)%arr.length,
+      (i+Math.floor(arr.length/3))%arr.length, (i+2*Math.floor(arr.length/3))%arr.length, (i+half)%arr.length
+    ];
+    candidates = candidates.filter(c => !exclude.includes(arr.indexOf(c)));
+    return candidates.slice(0,5);
+  }
+};
+
+/* =========================
+   Глобальные состояния
+   ========================= */
+let lastChosenIndex = null;
+const currentFilters = { style:"", season:"", colortype:"" };
+
+/* =========================
+   Рендер stylist wheel (на Canvas) — простой сегментный круг с подсветкой видимых
+   ========================= */
+function renderStylistWheel(){
+  const canvas = document.getElementById("stylistColorWheel");
+  if(!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const cssW = canvas.width, cssH = canvas.height;
+  ctx.clearRect(0,0,cssW,cssH);
+  const cx = cssW/2, cy = cssH/2, radius = Math.min(cx,cy)-6;
+  const step = (2*Math.PI)/colors.length;
+
+  colors.forEach((seg,i) => {
+    const styleOk = !currentFilters.style || seg.style === currentFilters.style;
+    const seasonOk = !currentFilters.season || seg.season === currentFilters.season;
+    const typeOk = !currentFilters.colortype || seg.colortype === currentFilters.colortype;
+    const visible = styleOk && seasonOk && typeOk;
+
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,radius, i*step, (i+1)*step);
+    ctx.closePath();
+    ctx.fillStyle = seg.color;
+    ctx.globalAlpha = visible ? 1 : 0.22;
+    ctx.fill();
+
+    // labels
+    const angle = (i+0.5)*step;
+    ctx.fillStyle = "#fff";
+    ctx.globalAlpha = visible ? 0.9 : 0.28;
+    ctx.font = "11px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(seg.text, cx + Math.cos(angle)*(radius+22), cy + Math.sin(angle)*(radius+22));
+  });
+
+  // highlight chosen
+  if(lastChosenIndex!==null){
+    const i = lastChosenIndex;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,radius, i*step, (i+1)*step);
+    ctx.closePath();
+    ctx.fillStyle = colors[i].color;
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 22;
+    ctx.shadowColor = "#fff";
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+  ctx.globalAlpha = 1;
+}
+
+/* hair wheel — упрощённый */
+function renderHairWheel(){
+  const canvas = document.getElementById("hairColorWheel");
+  if(!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const hairColors = ["#FF0000","#FF7A00","#FFD400","#00A100","#0055FF","#8E00FF"];
+  const cx = canvas.width/2, cy=canvas.height/2, radius=Math.min(cx,cy)-6;
+  const step = (2*Math.PI)/hairColors.length;
+  hairColors.forEach((c,i)=>{
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,radius, i*step, (i+1)*step);
+    ctx.closePath();
+    ctx.fillStyle=c;
+    ctx.fill();
+  });
+}
+
+/* =========================
+   Клик по стилистическому кругу
+   ========================= */
+function initCanvasClicks(){
+  const sc = document.getElementById("stylistColorWheel");
+  sc.addEventListener("click", (e)=>{
+    const rect = sc.getBoundingClientRect();
+    const x = e.clientX-rect.left, y = e.clientY-rect.top;
+    const cx = sc.width/2, cy=sc.height/2;
+    const angle = Math.atan2(y-cy, x-cx);
+    const norm = (angle + 2*Math.PI) % (2*Math.PI);
+    const idx = Math.floor(norm / ((2*Math.PI)/colors.length));
+    lastChosenIndex = idx;
+    updateSelectedInfo();
+    renderStylistWheel();
+  });
+
+  const hc = document.getElementById("hairColorWheel");
+  hc.addEventListener("click", (e)=>{
+    const rect = hc.getBoundingClientRect();
+    const x = e.clientX-rect.left, y = e.clientY-rect.top;
+    const cx = hc.width/2, cy=hc.height/2;
+    const angle = Math.atan2(y-cy, x-cx);
+    const norm = (angle + 2*Math.PI) % (2*Math.PI);
+    const idx = Math.floor(norm / ((2*Math.PI)/6));
+    document.getElementById("hairColorResult").textContent = ["Красный","Оранжевый","Жёлтый","Зелёный","Синий","Фиолетовый"][idx];
+  });
+}
+
+/* =========================
+   Обновление базовой инфо-карточки
+   ========================= */
+function updateSelectedInfo(){
+  const out = document.getElementById("stylistColorResult");
+  if(lastChosenIndex===null){ out.textContent="—"; return; }
+  const c = colors[lastChosenIndex];
+  out.textContent = c.text + " — " + c.color;
+  document.getElementById("baseColorInfo").textContent = `${c.text} (${c.color})`;
+}
+
+/* =========================
+   Рендер палитры (swatches)
+   ========================= */
+function renderPalette(schemeName, paletteArray){
+  const swatches = document.getElementById("swatches");
+  swatches.innerHTML = "";
+  paletteArray.forEach((cObj, i)=>{
+    const sw = document.createElement("div");
+    sw.className = "color-swatch";
+    if(i===0) sw.classList.add("chosen");
+    sw.style.background = cObj.color || cObj.hex || "#ccc";
+    sw.setAttribute("data-hex", cObj.color || cObj.hex || "");
+    sw.title = cObj.text || cObj.name || "";
+    const label = document.createElement("div");
+    label.className = "label";
+    label.textContent = cObj.text || cObj.name || "";
+    sw.appendChild(label);
+    sw.addEventListener("click", ()=>{
+      document.querySelectorAll(".color-swatch").forEach(x=>x.classList.remove("chosen"));
+      sw.classList.add("chosen");
+      lastChosenIndex = colors.indexOf(cObj) >= 0 ? colors.indexOf(cObj) : lastChosenIndex;
+      updateSelectedInfo();
+      renderStylistWheel();
+    });
+    swatches.appendChild(sw);
+  });
+  document.getElementById("schemeName").textContent = schemeName;
+}
+
+/* =========================
+   showScheme: вызывает генератор схем и передаёт в renderPalette
+   ========================= */
+function showScheme(type){
+  const guide = document.getElementById("schemeGuide");
+  if(lastChosenIndex===null){ guide.textContent = "Сначала выбери цвет на круге."; return; }
+  const gen = schemeGenerators[type];
+  if(!gen){ guide.textContent = "Схема не найдена"; return; }
+  // применяем фильтры: возьмём видимые цвета как рабочий массив
+  const visibleColors = colors.filter((c)=> {
+    const sOk = !currentFilters.style || c.style === currentFilters.style;
+    const seOk = !currentFilters.season || c.season === currentFilters.season;
+    const tOk = !currentFilters.colortype || c.colortype === currentFilters.colortype;
+    return sOk && seOk && tOk;
+  });
+  // Найдём реальный индекс выбранного цвета в visibleColors
+  const baseColor = colors[lastChosenIndex];
+  const baseIdx = visibleColors.indexOf(baseColor);
+  if(baseIdx === -1){
+    guide.textContent = "Выбранный цвет скрыт текущими фильтрами — сбросьте фильтр или выберите другой цвет.";
+    return;
+  }
+  const schemeColors = gen(baseIdx, visibleColors);
+  // Если генератор вернул объекты — норм; если индексы/цветы — унифицируем
+  // Убедимся, что результат — массив объектов с .color и .text
+  const normalized = schemeColors.map(s=>{
+    if(!s) return null;
+    if(typeof s === "string") return { color:s, text:s };
+    if(s.color) return s;
+    return { color: s.hex || "#ccc", text: s.text || s.name || "" };
+  }).filter(Boolean);
+  renderPalette(type, normalized);
+  guide.textContent = `Показана схема: ${type}`;
+}
+
+/* =========================
+   ФИЛЬТРЫ: управление и UI подсветка
+   ========================= */
+function setFilter(key, value){
+  currentFilters[key] = value || "";
+  // подсветка select
+  const sel = (key==="style") ? document.getElementById("filterStyle") :
+              (key==="season") ? document.getElementById("filterSeason") : document.getElementById("filterColortype");
+  if(sel){
+    sel.style.border = sel.value ? "2px solid var(--accent2)" : "1px solid rgba(255,255,255,0.06)";
+  }
+  updateActiveFiltersPanel();
+  renderStylistWheel();
+}
+
+function updateActiveFiltersPanel(){
+  const panel = document.getElementById("activeFilters");
+  panel.innerHTML = "";
+  const keys = Object.keys(currentFilters).filter(k=> currentFilters[k]);
+  if(keys.length===0){
+    const nf = document.createElement("span"); nf.className="no-filters"; nf.id="noFiltersLabel"; nf.textContent="Фильтры не активны";
+    panel.appendChild(nf); return;
+  }
+  keys.forEach(k=>{
+    const val = currentFilters[k];
+    const chip = document.createElement("div"); chip.className="active-filter-item";
+    const txt = document.createElement("span"); txt.textContent = `${k}: ${val}`;
+    const btn = document.createElement("button"); btn.className="active-filter-remove"; btn.innerHTML="✕";
+    btn.addEventListener("click", ()=>{ setFilter(k, ""); const sel = (k==="style")?document.getElementById("filterStyle"):(k==="season")?document.getElementById("filterSeason"):document.getElementById("filterColortype"); if(sel)sel.value=""; });
+    chip.appendChild(txt); chip.appendChild(btn);
+    panel.appendChild(chip);
+  });
+  const clear = document.createElement("button"); clear.className="clear-all-filters"; clear.textContent="Сбросить все"; clear.addEventListener("click", ()=>{ document.getElementById("filterStyle").value=""; document.getElementById("filterSeason").value=""; document.getElementById("filterColortype").value=""; setFilter("style",""); setFilter("season",""); setFilter("colortype",""); });
+  panel.appendChild(clear);
+}
+
+/* =========================
+   Hook up filters & scheme buttons
+   ========================= */
+document.getElementById("filterStyle").addEventListener("change", e=> setFilter("style", e.target.value));
+document.getElementById("filterSeason").addEventListener("change", e=> setFilter("season", e.target.value));
+document.getElementById("filterColortype").addEventListener("change", e=> setFilter("colortype", e.target.value));
+document.getElementById("clearFilters").addEventListener("click", ()=>{ document.getElementById("filterStyle").value=""; document.getElementById("filterSeason").value=""; document.getElementById("filterColortype").value=""; setFilter("style",""); setFilter("season",""); setFilter("colortype",""); });
+
+document.querySelectorAll(".scheme-controls .btn.func").forEach(b=>{
+  b.addEventListener("click", ()=> showScheme(b.dataset.scheme));
+});
+
+/* =========================
+   Init on load
+   ========================= */
+window.addEventListener("load", ()=>{
+  renderHairWheel();
+  renderStylistWheel();
+  initCanvasClicks();
+  updateActiveFiltersPanel();
+});
+</script>
+</body>
+</html>
